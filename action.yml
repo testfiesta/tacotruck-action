@@ -1,0 +1,35 @@
+name: tacotruck-action
+description: 'Submit test results from any language/framework to services like TestRail, Testfiesta etc.'
+author: Testfiesta
+
+inputs:
+  provider:
+    description: 'Provider of your choice. Supported platforms include: TestRail, Testfiesta etc.'
+    required: true
+  results-path:
+    description: Path to test results file or directory
+    required: true
+  credentials:
+    description: API key for test results service
+    required: true
+  base-url:
+    description: Base URL for the API
+    required: true
+  fail-on-error:
+    description: Fail the workflow if submission fails
+    required: false
+    default: 'true'
+
+outputs:
+  submission-id:
+    description: ID of the submitted test results
+  results-url:
+    description: URL to view the submitted results
+
+runs:
+  using: node20
+  main: dist/index.js
+
+branding:
+  icon: check-circle
+  color: green
