@@ -23,7 +23,9 @@
   },
   "dependencies": {
     "@actions/core": "^1.11.1",
-    "@actions/github": "^6.0.1"
+    "@actions/github": "^6.0.1",
+    "@testfiesta/tacotruck": "^1.0.0-beta.7",
+    "zod": "^4.0.17"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^5.2.1",
