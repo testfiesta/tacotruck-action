@@ -2,33 +2,38 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
+import { TestFiestaClient, TestRailClient } from '@testfiesta/tacotruck'
+import { z } from 'zod'
 
-interface BaseConfig {
-  provider: string
-  resultsPath: string
-  credentials: string
-  baseUrl: string
-  failOnError: boolean
-}
+const baseConfigSchema = z.object({
+  provider: z.union([z.literal('testrail'), z.literal('testfiesta')], {
+    message: 'Provider must be one of: \'testrail\', \'testfiesta\'',
+  }),
+  resultsPath: z.string().trim().min(1, 'Results path cannot be empty'),
+  credentials: z.string().min(1, 'Credentials cannot be empty'),
+  baseUrl: z.url('Base URL must be a valid URL'),
+  runName: z.string().trim().optional().default(() => `CI Run ${github.context.runId}`),
+  failOnError: z.boolean().default(false),
+})
 
-interface TestRailConfig extends BaseConfig {
-  provider: 'testrail'
-  projectId: number
-  suiteId?: number
-  runName?: string
-  milestoneId?: number
-  assignedTo?: string
-}
+const testRailConfigSchema = baseConfigSchema.extend({
+  provider: z.literal('testrail'),
+  project: z.string(),
+})
 
-interface TestfiestaConfig extends BaseConfig {
-  provider: 'testfiesta'
-  project: string
-  environment?: string
-  tags?: string[]
-  branch?: string
-}
+const testfiestaConfigSchema = baseConfigSchema.extend({
+  provider: z.literal('testfiesta'),
+  project: z.string(),
+})
 
-type ProviderConfig = TestRailConfig | TestfiestaConfig
+export const providerConfigSchema = z.discriminatedUnion('provider', [
+  testRailConfigSchema,
+  testfiestaConfigSchema,
+])
+
+export type ZodTestRailConfig = z.infer<typeof testRailConfigSchema>
+export type ZodTestfiestaConfig = z.infer<typeof testfiestaConfigSchema>
+export type ZodProviderConfig = z.infer<typeof providerConfigSchema>
 
 interface SubmissionResult {
   submissionId: string
@@ -39,11 +44,11 @@ async function run(): Promise<void> {
   try {
     const config = await parseConfiguration()
 
+    validateProviderConfig(config)
+
     core.info(`🚀 Submitting test results to ${config.provider}`)
     core.info(`📁 Results path: ${config.resultsPath}`)
     core.info(`🌐 Base URL: ${config.baseUrl}`)
-
-    validateProviderConfig(config)
 
     const context = github.context
     const metadata = {
@@ -78,9 +83,9 @@ async function run(): Promise<void> {
   }
 }
 
-async function parseConfiguration(): Promise<ProviderConfig> {
+async function parseConfiguration(): Promise<ZodProviderConfig> {
   const provider = core.getInput('provider', { required: true }).toLowerCase()
-  const baseConfig: BaseConfig = {
+  const baseConfig = {
     provider,
     resultsPath: core.getInput('results-path', { required: true }),
     credentials: core.getInput('credentials', { required: true }),
@@ -110,94 +115,154 @@ async function parseConfiguration(): Promise<ProviderConfig> {
     }
   }
 
-  switch (provider) {
-    case 'testrail':
-      return {
-        ...baseConfig,
-        provider: 'testrail',
-        projectId: providerConfig.project_id || providerConfig.projectId,
-        suiteId: providerConfig.suite_id || providerConfig.suiteId,
-        runName: providerConfig.run_name || providerConfig.runName || `CI Run ${github.context.runId}`,
-        milestoneId: providerConfig.milestone_id || providerConfig.milestoneId,
-        assignedTo: providerConfig.assigned_to || providerConfig.assignedTo,
-      } as TestRailConfig
+  let config: ZodProviderConfig
 
-    case 'testfiesta':
-      return {
-        ...baseConfig,
-        provider: 'testfiesta',
-        project: providerConfig.project,
-        environment: providerConfig.environment || 'default',
-        tags: Array.isArray(providerConfig.tags)
-          ? providerConfig.tags
-          : (providerConfig.tags || '').split(',').filter(Boolean),
-        branch: providerConfig.branch || github.context.ref,
-      } as TestfiestaConfig
+  try {
+    switch (provider) {
+      case 'testrail': {
+        const rawConfig = {
+          ...baseConfig,
+          provider: 'testrail',
+          projectId: providerConfig.project_id,
+          suiteId: providerConfig.suite_id || providerConfig.suiteId,
+          runName: providerConfig.run_name || providerConfig.runName,
+          milestoneId: providerConfig.milestone_id || providerConfig.milestoneId,
+          assignedTo: providerConfig.assigned_to || providerConfig.assignedTo,
+        }
 
-    default:
-      throw new Error(`Unsupported provider: ${provider}. Supported providers: testrail, testfiesta`)
+        config = testRailConfigSchema.parse(rawConfig)
+        break
+      }
+
+      case 'testfiesta': {
+        const rawConfig = {
+          ...baseConfig,
+          provider: 'testfiesta',
+          project: providerConfig.project || '',
+          environment: providerConfig.environment,
+          tags: providerConfig.tags,
+          branch: providerConfig.branch,
+        }
+
+        config = testfiestaConfigSchema.parse(rawConfig)
+        break
+      }
+
+      default:
+        throw new Error(`Unsupported provider: ${provider}. Supported providers: testrail, testfiesta`)
+    }
+
+    if (config.provider === 'testrail' && config.credentials) {
+      const [username, apiKey] = config.credentials.split(':')
+      if (!username || !apiKey) {
+        throw new Error('TestRail credentials must be in the format "username:apikey"')
+      }
+    }
+
+    return config
+  }
+  catch (error) {
+    if (error instanceof z.ZodError) {
+      const formattedErrors = error.issues.map(err =>
+        `${err.path.join('.')}: ${err.message}`,
+      ).join('\n- ')
+      throw new Error(`Configuration validation failed:\n- ${formattedErrors}`)
+    }
+    if (error instanceof Error) {
+      throw new TypeError(`Configuration error: ${error.message}`)
+    }
+    throw new Error(`Unknown configuration error: ${String(error)}`)
   }
 }
 
-function validateProviderConfig(config: ProviderConfig): void {
-  switch (config.provider) {
-    case 'testrail':
-      if (!config.projectId) {
-        throw new Error('TestRail configuration requires project_id')
-      }
-      break
+function validateProviderConfig(config: ZodProviderConfig): void {
+  try {
+    if (!fs.existsSync(config.resultsPath)) {
+      throw new Error(`Results path does not exist: ${config.resultsPath}`)
+    }
 
-    case 'testfiesta':
-      if (!config.project) {
-        throw new Error('Testfiesta configuration requires project name')
+    const stats = fs.statSync(config.resultsPath)
+    if (!stats.isDirectory() && !stats.isFile()) {
+      throw new Error(`Results path is not a valid file or directory: ${config.resultsPath}`)
+    }
+
+    try {
+      if (stats.isDirectory()) {
+        fs.readdirSync(config.resultsPath)
       }
-      break
+      else {
+        fs.accessSync(config.resultsPath, fs.constants.R_OK)
+      }
+    }
+    // eslint-disable-next-line unused-imports/no-unused-vars
+    catch (err) {
+      throw new Error(`No read permission for results path: ${config.resultsPath}`)
+    }
   }
-
-  if (!fs.existsSync(config.resultsPath)) {
-    throw new Error(`Results path does not exist: ${config.resultsPath}`)
+  catch (error) {
+    if (error instanceof Error) {
+      throw error
+    }
+    throw new Error(`Error validating results path: ${String(error)}`)
   }
 }
 
 async function submitTestResults(
-  config: ProviderConfig,
+  config: ZodProviderConfig,
   metadata: any,
 ): Promise<SubmissionResult> {
-  const testResults = await readTestResults(config.resultsPath)
+  try {
+    const testResults = await readTestResults(config.resultsPath)
 
-  switch (config.provider) {
-    case 'testrail':
-      return await submitToTestRail(config, testResults, metadata)
+    if (Array.isArray(testResults) && testResults.length === 0) {
+      core.warning(`No test results found in ${config.resultsPath}`)
+    }
 
-    case 'testfiesta':
-      return await submitToTestfiesta(config, testResults, metadata)
+    switch (config.provider) {
+      case 'testrail':
+        return await submitToTestRail(config, testResults, metadata)
 
-    default:
-    // @ts-expect-error config.provider does not exist
-      throw new Error(`Unsupported provider: ${config.provider}`)
+      case 'testfiesta':
+        return await submitToTestfiesta(config, testResults, metadata)
+
+      default:
+        throw new Error(`Unsupported provider`)
+    }
+  }
+  catch (error) {
+    if (error instanceof Error) {
+      throw new TypeError(`Failed to submit test results: ${error.message}`)
+    }
+    throw new Error(`Failed to submit test results: ${String(error)}`)
   }
 }
 
 async function submitToTestRail(
-  config: TestRailConfig,
+  config: ZodTestRailConfig,
   testResults: any,
   metadata: any,
 ): Promise<SubmissionResult> {
-  const [_username, _password] = config.credentials.split(':')
+  const [username, password] = config.credentials.split(':')
 
   const runPayload = {
     name: config.runName,
     description: `Automated test run from ${metadata.workflow} (${metadata.commit})`,
-    suite_id: config.suiteId,
-    milestone_id: config.milestoneId,
-    assignedto_id: config.assignedTo,
     results: testResults,
     include_all: true,
   }
 
-  core.debug(`Creating TestRail run with payload: ${JSON.stringify(runPayload)}`)
+  const sanitizedPayload = { ...runPayload, credentials: '***' }
+  core.debug(`Creating TestRail run with payload: ${JSON.stringify(sanitizedPayload)}`)
+
   const runId = 1
 
+  const trClient = new TestRailClient({
+    baseUrl: config.baseUrl,
+    username,
+    password,
+  })
+
+  await trClient.submitTestResults(testResults, {}, config.runName)
   core.info(`📝 Created TestRail run: ${runId}`)
 
   return {
@@ -207,22 +272,32 @@ async function submitToTestRail(
 }
 
 async function submitToTestfiesta(
-  config: TestfiestaConfig,
+  config: ZodTestfiestaConfig,
   testResults: any,
   metadata: any,
 ): Promise<SubmissionResult> {
-  const _payload = {
+  const payload = {
     project: config.project,
-    environment: config.environment,
-    tags: config.tags,
-    branch: config.branch,
     results: testResults,
     metadata,
   }
 
+  const sanitizedPayload = { ...payload, credentials: '***' }
+  core.debug(`Submitting to Testfiesta with payload: ${JSON.stringify(sanitizedPayload)}`)
+
+  const submissionId = '1'
+
+  const tfClient = new TestFiestaClient({
+    domain: config.baseUrl,
+    apiKey: config.credentials,
+  })
+  await tfClient.submitTestResults()
+
+  core.info(`📝 Created Testfiesta submission: ${submissionId}`)
+
   return {
-    submissionId: '1',
-    resultsUrl: `${config.baseUrl}/runs/view/1`,
+    submissionId,
+    resultsUrl: `${config.baseUrl}/runs/view/${submissionId}`,
   }
 }
 
@@ -255,11 +330,8 @@ async function readSingleTestResultFile(filePath: string): Promise<any> {
   const content = fs.readFileSync(filePath, 'utf8')
   const extension = path.extname(filePath).toLowerCase()
 
-  switch (extension) {
-    case '.xml':
-      return { format: 'junit', content, filePath }
-    default:
-      return { format: 'raw', content, filePath }
+  if (extension === '.xml') {
+    return { format: 'junit', content, filePath }
   }
 }
 
@@ -267,8 +339,8 @@ function isTestResultFile(filename: string): boolean {
   const testFilePatterns = [
     /test.*\.xml$/i,
     /.*results?\.xml$/i,
-    /.*results?\.json$/i,
-    /.*\.tap$/i,
+    /.*report.*\.xml$/i,
+    /junit.*\.xml$/i,
   ]
 
   return testFilePatterns.some(pattern => pattern.test(filename))
