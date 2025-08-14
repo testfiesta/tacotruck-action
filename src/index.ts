@@ -173,6 +173,7 @@ async function submitTestResults(
       return await submitToTestfiesta(config, testResults, metadata)
 
     default:
+    // @ts-expect-error config.provider does not exist
       throw new Error(`Unsupported provider: ${config.provider}`)
   }
 }

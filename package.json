@@ -13,12 +13,12 @@
     "github",
     "action"
   ],
-  "main": "dist/index.js",
+  "main": "dist/index.mjs",
   "scripts": {
     "build": "tsdown",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
-    "release": "bumpp --commit --push --tag"
+    "release": "bumpp --commit --push"
   },
   "dependencies": {
     "@actions/core": "^1.11.1",
