@@ -89,6 +89,8 @@ async function parseConfiguration(): Promise<ZodProviderConfig> {
   const provider = core.getInput('provider', { required: true }).toLowerCase()
   const baseConfig = {
     provider,
+    handle: core.getInput('handle', { required: true }),
+    project: core.getInput('project', { required: true }),
     resultsPath: core.getInput('results-path', { required: true }),
     credentials: core.getInput('credentials', { required: true }),
     baseUrl: core.getInput('base-url', { required: true }),
