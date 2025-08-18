@@ -2,7 +2,7 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-import { TestFiestaClient, TestRailClient } from '@testfiesta/tacotruck'
+import { TestFiestaClient, TestRailClient, JunitXmlParser } from '@testfiesta/tacotruck'
 import { z } from 'zod'
 
 const baseConfigSchema = z.object({
@@ -214,18 +214,20 @@ async function submitTestResults(
   metadata: any,
 ): Promise<SubmissionResult> {
   try {
-    const testResults = await readTestResults(config.resultsPath)
+    const testResult = await readTestResult(config.resultsPath)
 
-    if (Array.isArray(testResults) && testResults.length === 0) {
+    if (!testResult) {
       core.warning(`No test results found in ${config.resultsPath}`)
     }
 
+    const parsedResult = new JunitXmlParser(testResult?.content).build()
+
     switch (config.provider) {
       case 'testrail':
-        return await submitToTestRail(config, testResults, metadata)
+        return await submitToTestRail(config, parsedResult, metadata)
 
       case 'testfiesta':
-        return await submitToTestfiesta(config, testResults, metadata)
+        return await submitToTestfiesta(config, parsedResult, metadata)
 
       default:
         throw new Error(`Unsupported provider`)
@@ -279,8 +281,11 @@ async function submitToTestfiesta(
   metadata: any,
 ): Promise<SubmissionResult> {
   const payload = {
+    provider: config.provider,
+    resultsPath: config.resultsPath,
+    baseUrl: config.baseUrl,
     project: config.project,
-    results: testResults,
+    handle: config.handle,
     metadata,
   }
 
@@ -293,6 +298,7 @@ async function submitToTestfiesta(
     domain: config.baseUrl,
     apiKey: config.credentials,
   })
+
   await tfClient.submitTestResults(testResults, { key: config.project, handle: config.handle })
 
   core.info(`📝 Created Testfiesta submission: ${submissionId}`)
@@ -303,32 +309,11 @@ async function submitToTestfiesta(
   }
 }
 
-async function readTestResults(resultsPath: string): Promise<any> {
-  const stats = fs.statSync(resultsPath)
-
-  if (stats.isDirectory()) {
-    return await readTestResultsFromDirectory(resultsPath)
-  }
-  else {
-    return await readSingleTestResultFile(resultsPath)
-  }
+async function readTestResult(resultsPath: string) {
+  return await readSingleTestResultFile(resultsPath)
 }
 
-async function readTestResultsFromDirectory(directory: string): Promise<any[]> {
-  const results: any[] = []
-  const files = fs.readdirSync(directory, { recursive: true })
-
-  for (const file of files) {
-    if (typeof file === 'string' && isTestResultFile(file)) {
-      const fullPath = path.join(directory, file)
-      results.push(await readSingleTestResultFile(fullPath))
-    }
-  }
-
-  return results
-}
-
-async function readSingleTestResultFile(filePath: string): Promise<any> {
+async function readSingleTestResultFile(filePath: string) {
   const content = fs.readFileSync(filePath, 'utf8')
   const extension = path.extname(filePath).toLowerCase()
 
@@ -337,7 +322,7 @@ async function readSingleTestResultFile(filePath: string): Promise<any> {
   }
 }
 
-function isTestResultFile(filename: string): boolean {
+export function isTestResultFile(filename: string): boolean {
   const testFilePatterns = [
     /test.*\.xml$/i,
     /.*results?\.xml$/i,
