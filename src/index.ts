@@ -9,6 +9,8 @@ const baseConfigSchema = z.object({
   provider: z.union([z.literal('testrail'), z.literal('testfiesta')], {
     message: 'Provider must be one of: \'testrail\', \'testfiesta\'',
   }),
+  handle: z.string().trim().min(1, 'Handle cannot be empty'),
+  project: z.string().trim().min(1, 'Project cannot be empty'),
   resultsPath: z.string().trim().min(1, 'Results path cannot be empty'),
   credentials: z.string().min(1, 'Credentials cannot be empty'),
   baseUrl: z.url('Base URL must be a valid URL'),
@@ -123,7 +125,6 @@ async function parseConfiguration(): Promise<ZodProviderConfig> {
         const rawConfig = {
           ...baseConfig,
           provider: 'testrail',
-          projectId: providerConfig.project_id,
           suiteId: providerConfig.suite_id || providerConfig.suiteId,
           runName: providerConfig.run_name || providerConfig.runName,
           milestoneId: providerConfig.milestone_id || providerConfig.milestoneId,
@@ -138,7 +139,6 @@ async function parseConfiguration(): Promise<ZodProviderConfig> {
         const rawConfig = {
           ...baseConfig,
           provider: 'testfiesta',
-          project: providerConfig.project || '',
           environment: providerConfig.environment,
           tags: providerConfig.tags,
           branch: providerConfig.branch,
@@ -291,7 +291,7 @@ async function submitToTestfiesta(
     domain: config.baseUrl,
     apiKey: config.credentials,
   })
-  await tfClient.submitTestResults()
+  await tfClient.submitTestResults(testResults, { key: config.project, handle: config.handle })
 
   core.info(`📝 Created Testfiesta submission: ${submissionId}`)
 
