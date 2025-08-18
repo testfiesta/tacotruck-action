@@ -10,7 +10,7 @@ inputs:
     description: 'Provider of your choice. Supported platforms include: TestRail, Testfiesta etc.'
     required: true
   project:
-    description: 'Project ID for the provider. This is used to identify the project on the provider.'
+    description: Project ID for the provider. This is used to identify the project on the provider.
     required: true
   results-path:
     description: Path to test results file or directory

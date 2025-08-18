@@ -115,17 +115,17 @@ Testfiesta uses Bearer token authentication.
 
 ## Input Reference
 
-| Input           | Required | Description                                                                     |
-| --------------- | -------- | ------------------------------------------------------------------------------- |
-| `provider`      | ✅       | Provider name (`testrail`, `testfiesta`)                                        |
+| Input           | Required | Description                                                                    |
+| --------------- | -------- | ------------------------------------------------------------------------------ |
+| `provider`      | ✅       | Provider name (`testrail`, `testfiesta`)                                       |
 | `handle`        | ✅       | Handle of the provider (e.g. username for testrail, org handle for testfiesta) |
-| `project`       | ✅       | Project id or key of the provider                                               |
-| `results-path`  | ✅       | Path to test results file or directory                                          |
-| `credentials`   | ✅       | Authentication credentials (format varies by provider)                          |
-| `base-url`      | ✅       | Base URL for the provider's API                                                 |
-| `config`        | ❌       | Provider-specific configuration (JSON format)                                   |
-| `config-file`   | ❌       | Path to configuration file                                                      |
-| `fail-on-error` | ❌       | Fail workflow if submission fails (default: `true`)                             |
+| `project`       | ✅       | Project id or key of the provider                                              |
+| `results-path`  | ✅       | Path to test results file or directory                                         |
+| `credentials`   | ✅       | Authentication credentials (format varies by provider)                         |
+| `base-url`      | ✅       | Base URL for the provider's API                                                |
+| `config`        | ❌       | Provider-specific configuration (JSON format)                                  |
+| `config-file`   | ❌       | Path to configuration file                                                     |
+| `fail-on-error` | ❌       | Fail workflow if submission fails (default: `true`)                            |
 
 ## Output Reference
 
