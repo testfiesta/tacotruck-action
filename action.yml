@@ -3,8 +3,14 @@ description: 'Submit test results from any language/framework to services like T
 author: Testfiesta
 
 inputs:
+  handle:
+    description: 'Your handle or username for the provider. This is used to identify your account on the provider. For testfiesta, it is your organization handle and for TestRail, it is your username.'
+    required: true
   provider:
     description: 'Provider of your choice. Supported platforms include: TestRail, Testfiesta etc.'
+    required: true
+  project:
+    description: Project ID for the provider. This is used to identify the project on the provider.
     required: true
   results-path:
     description: Path to test results file or directory
