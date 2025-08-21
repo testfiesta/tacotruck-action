@@ -14,6 +14,7 @@ Submit test results from any language/framework to test management services like
     results-path: ./test-results.xml
     credentials: ${{ secrets.TESTRAIL_CREDENTIALS }}
     base-url: 'https://<your-username>.testrail.io'
+    run-name: 'CI Run #${{ github.run_number }}'
     config: |
       {
         "suite_id": 2,
@@ -52,6 +53,7 @@ TestRail uses Basic Authentication with username and password.
     results-path: ./junit-results.xml
     credentials: ${{ secrets.TESTRAIL_CREDENTIALS }}
     base-url: 'https://<your-username>.testrail.io'
+    run-name: 'CI Run #${{ github.run_number }}'
     config: |
       {
         "suite_id": 2,
@@ -97,6 +99,7 @@ Testfiesta uses Bearer token authentication.
     results-path: ./test-results
     credentials: ${{ secrets.TESTFIESTA_API_KEY }}
     base-url: 'https://api.testfiesta.com'
+    run-name: 'CI Run #${{ github.run_number }}'
     config: |
       {
         "environment": "staging",
@@ -123,6 +126,7 @@ Testfiesta uses Bearer token authentication.
 | `results-path`  | ✅       | Path to test results file or directory                                         |
 | `credentials`   | ✅       | Authentication credentials (format varies by provider)                         |
 | `base-url`      | ✅       | Base URL for the provider's API                                                |
+| `run-name`      | ❌       | Name of the test run                                                           |
 | `config`        | ❌       | Provider-specific configuration (JSON format)                                  |
 | `config-file`   | ❌       | Path to configuration file                                                     |
 | `fail-on-error` | ❌       | Fail workflow if submission fails (default: `true`)                            |
@@ -161,6 +165,7 @@ Instead of inline JSON, you can use a configuration file:
     credentials: ${{ secrets.TESTRAIL_CREDENTIALS }}
     base-url: 'https://yourcompany.testrail.io'
     config-file: ./tacotruck.config.json
+    run-name: 'CI Run #${{ github.run_number }}'
 ```
 
 ## Supported Test Result Formats
