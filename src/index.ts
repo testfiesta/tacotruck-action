@@ -2,7 +2,7 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-import { TestFiestaClient, TestRailClient, JunitXmlParser } from '@testfiesta/tacotruck'
+import { JunitXmlParser, TestFiestaClient, TestRailClient } from '@testfiesta/tacotruck'
 import { z } from 'zod'
 
 const baseConfigSchema = z.object({
@@ -38,7 +38,7 @@ export type ZodTestfiestaConfig = z.infer<typeof testfiestaConfigSchema>
 export type ZodProviderConfig = z.infer<typeof providerConfigSchema>
 
 interface SubmissionResult {
-  submissionId: string
+  submissionId?: string
   resultsUrl: string
 }
 
@@ -94,6 +94,7 @@ async function parseConfiguration(): Promise<ZodProviderConfig> {
     resultsPath: core.getInput('results-path', { required: true }),
     credentials: core.getInput('credentials', { required: true }),
     baseUrl: core.getInput('base-url', { required: true }),
+    runName: core.getInput('run-name'),
     failOnError: core.getBooleanInput('fail-on-error'),
   }
 
@@ -283,6 +284,7 @@ async function submitToTestfiesta(
   const payload = {
     provider: config.provider,
     resultsPath: config.resultsPath,
+    runName: config.runName,
     baseUrl: config.baseUrl,
     project: config.project,
     handle: config.handle,
@@ -292,20 +294,17 @@ async function submitToTestfiesta(
   const sanitizedPayload = { ...payload, credentials: '***' }
   core.debug(`Submitting to Testfiesta with payload: ${JSON.stringify(sanitizedPayload)}`)
 
-  const submissionId = '1'
-
   const tfClient = new TestFiestaClient({
     domain: config.baseUrl,
     apiKey: config.credentials,
   })
 
-  await tfClient.submitTestResults(testResults, { key: config.project, handle: config.handle })
+  await tfClient.submitTestResults(testResults, { key: config.project, handle: config.handle, name: config.runName })
 
-  core.info(`📝 Created Testfiesta submission: ${submissionId}`)
+  core.info(`📝 Test Results Submitted`)
 
   return {
-    submissionId,
-    resultsUrl: `${config.baseUrl}/runs/view/${submissionId}`,
+    resultsUrl: `${config.baseUrl}/${config.handle}/${config.project}/runs`,
   }
 }
 

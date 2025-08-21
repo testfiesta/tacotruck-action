@@ -21,6 +21,9 @@ inputs:
   base-url:
     description: Base URL for the API
     required: true
+  run-name:
+    description: Name of the run
+    required: false
   fail-on-error:
     description: Fail the workflow if submission fails
     required: false
