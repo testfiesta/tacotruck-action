@@ -127,9 +127,10 @@ async function submitToTestfiesta(
   const tfClient = new TestFiestaClient({
     domain: config.baseUrl,
     apiKey: config.credentials,
+    organizationHandle: config.handle,
   })
 
-  await tfClient.submitTestResults(testResults, { key: config.project, handle: config.handle, name: config.runName })
+  await tfClient.submitTestResults(config.project, testResults, { runName: config.runName })
 
   return {
     resultsUrl: `${config.baseUrl}/${config.handle}/${config.project}/runs`,
