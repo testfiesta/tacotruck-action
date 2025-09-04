@@ -57,17 +57,18 @@ async function submitTestResults(
   const testResult = await readTestResult(config.resultsPath)
 
   if (!testResult) {
-    core.warning(`No test results found in ${config.resultsPath}`)
+    core.setFailed(`No test results found in ${config.resultsPath}`)
+    return { resultsUrl: '' }
   }
 
-  const parsedResult = new JunitXmlParser(testResult?.content).build()
+  const parsedResult = new JunitXmlParser().fromFile(testResult.filePath).build()
 
   switch (config.provider) {
     case 'testrail':
       return await submitToTestRail(config, parsedResult, metadata)
 
     case 'testfiesta':
-      return await submitToTestfiesta(config, parsedResult, metadata)
+      return await submitToTestfiesta(config, testResult.filePath, metadata)
 
     default:
       throw new Error(`Unsupported provider`)
@@ -108,7 +109,7 @@ async function submitToTestRail(
 
 async function submitToTestfiesta(
   config: ZodTestfiestaConfig,
-  testResults: any,
+  resultsPath: string,
   metadata: any,
 ): Promise<SubmissionResult> {
   const payload = {
@@ -130,7 +131,7 @@ async function submitToTestfiesta(
     organizationHandle: config.handle,
   })
 
-  await tfClient.submitTestResults(config.project, testResults, { runName: config.runName })
+  await tfClient.submitTestResults(config.project, resultsPath, { runName: config.runName })
 
   return {
     resultsUrl: `${config.baseUrl}/${config.handle}/${config.project}/runs`,
