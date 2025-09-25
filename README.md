@@ -36,10 +36,13 @@ TestRail uses Basic Authentication with username and password.
    - Note your username and password (or create an API-specific user)
 
 2. **Add to GitHub Secrets:**
+
    ```
    TESTRAIL_CREDENTIALS = "your-username:your-password"
    ```
-   **Important:** Use the format `username:password` - the action will handle the Base64 encoding.
+
+   > [!IMPORTANT]
+   > Use the format `username:password` - the action will handle the Base64 encoding.
 
 #### Usage
 
