@@ -80,8 +80,6 @@ async function submitToTestRail(
   testResults: any,
   metadata: any,
 ): Promise<SubmissionResult> {
-  const [username, password] = config.credentials.split(':')
-
   const runPayload = {
     name: config.runName,
     description: `Automated test run from ${metadata.workflow} (${metadata.commit})`,
@@ -96,8 +94,7 @@ async function submitToTestRail(
 
   const trClient = new TestRailClient({
     baseUrl: config.baseUrl,
-    username,
-    password,
+    apiKey: config.credentials,
   })
 
   await trClient.submitTestResults(testResults, {}, config.runName)
@@ -126,7 +123,7 @@ async function submitToTestfiesta(
   core.debug(`Submitting to Testfiesta with payload: ${JSON.stringify(sanitizedPayload)}`)
 
   const tfClient = new TestFiestaClient({
-    domain: config.baseUrl,
+    baseUrl: config.baseUrl,
     apiKey: config.credentials,
     organizationHandle: config.handle,
   })
