@@ -1,6 +1,5 @@
 import * as fs from 'node:fs'
 import * as core from '@actions/core'
-import * as github from '@actions/github'
 import { z } from 'zod'
 
 const baseConfigSchema = z.object({
@@ -12,7 +11,8 @@ const baseConfigSchema = z.object({
   resultsPath: z.string().trim().min(1, 'Results path cannot be empty'),
   credentials: z.string().min(1, 'Credentials cannot be empty'),
   baseUrl: z.url('Base URL must be a valid URL'),
-  runName: z.string().trim().optional().default(() => `CI Run ${github.context.runId}`),
+  runName: z.string().trim().min(1, 'Run name cannot be empty'),
+  source: z.string().trim().optional(),
   failOnError: z.boolean().default(false),
 })
 
@@ -76,7 +76,8 @@ export async function parseConfiguration(): Promise<ZodProviderConfig> {
     resultsPath: core.getInput('results-path', { required: true }),
     credentials: core.getInput('credentials', { required: true }),
     baseUrl: core.getInput('base-url', { required: true }),
-    runName: core.getInput('run-name'),
+    runName: core.getInput('run-name', { required: true }),
+    source: core.getInput('source'),
     failOnError: core.getBooleanInput('fail-on-error'),
   }
 

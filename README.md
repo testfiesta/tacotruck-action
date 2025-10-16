@@ -15,11 +15,7 @@ Submit test results from any language/framework to test management services like
     credentials: ${{ secrets.TESTRAIL_CREDENTIALS }}
     base-url: 'https://<your-username>.testrail.io'
     run-name: 'CI Run #${{ github.run_number }}'
-    config: |
-      {
-        "suite_id": 2,
-        "run_name": "CI Run #${{ github.run_number }}"
-      }
+    source: GitHub Actions
 ```
 
 ## Supported Providers
@@ -63,23 +59,8 @@ TestRail uses Basic Authentication with username and password.
     credentials: ${{ secrets.TESTRAIL_CREDENTIALS }}
     base-url: 'https://<your-username>.testrail.io'
     run-name: 'CI Run #${{ github.run_number }}'
-    config: |
-      {
-        "suite_id": 2,
-        "run_name": "Automated Tests - ${{ github.workflow }} #${{ github.run_number }}",
-        "milestone_id": 5,
-        "assigned_to": 123
-      }
+    source: GitHub Actions
 ```
-
-#### TestRail Configuration Options
-
-| Option         | Required | Description                                               |
-| -------------- | -------- | --------------------------------------------------------- |
-| `suite_id`     | ❌       | Test suite ID (if using suites)                           |
-| `run_name`     | ❌       | Name for the test run (defaults to "CI Run {run_number}") |
-| `milestone_id` | ❌       | Milestone to associate the run with                       |
-| `assigned_to`  | ❌       | User ID to assign the test run to                         |
 
 ### Testfiesta
 
@@ -109,21 +90,8 @@ Testfiesta uses Bearer token authentication.
     credentials: ${{ secrets.TESTFIESTA_API_KEY }}
     base-url: 'https://api.testfiesta.com'
     run-name: 'CI Run #${{ github.run_number }}'
-    config: |
-      {
-        "environment": "staging",
-        "tags": ["ci", "regression", "api-tests"],
-        "branch": "${{ github.ref_name }}"
-      }
+    source: GitHub Actions
 ```
-
-#### Testfiesta Configuration Options
-
-| Option        | Required | Description                              |
-| ------------- | -------- | ---------------------------------------- |
-| `environment` | ❌       | Test environment (defaults to "default") |
-| `tags`        | ❌       | Array of tags or comma-separated string  |
-| `branch`      | ❌       | Git branch (defaults to current branch)  |
 
 ## Input Reference
 
@@ -136,8 +104,7 @@ Testfiesta uses Bearer token authentication.
 | `credentials`   | ✅       | Authentication credentials (format varies by provider)                         |
 | `base-url`      | ✅       | Base URL for the provider's API                                                |
 | `run-name`      | ❌       | Name of the test run                                                           |
-| `config`        | ❌       | Provider-specific configuration (JSON format)                                  |
-| `config-file`   | ❌       | Path to configuration file                                                     |
+| `source`        | ❌       | Source of the test run (e.g. 'GitHub Actions', 'Jenkins')                      |
 | `fail-on-error` | ❌       | Fail workflow if submission fails (default: `true`)                            |
 
 ## Output Reference
@@ -146,36 +113,6 @@ Testfiesta uses Bearer token authentication.
 | --------------- | --------------------------------- |
 | `submission-id` | ID of the submitted test results  |
 | `results-url`   | URL to view the submitted results |
-
-## Configuration File Approach
-
-Instead of inline JSON, you can use a configuration file:
-
-**Create `tacotruck.config.json`:**
-
-```json
-{
-  "suite_id": 2,
-  "run_name": "Nightly Regression Tests",
-  "milestone_id": 5
-}
-```
-
-**Use in workflow:**
-
-```yaml
-- name: Submit Test Results
-  uses: testfiesta/tacotruck-action@v1
-  with:
-    provider: testrail
-    handle: <your_username>
-    project: <your-project-id>
-    results-path: ./test-results.xml
-    credentials: ${{ secrets.TESTRAIL_CREDENTIALS }}
-    base-url: 'https://yourcompany.testrail.io'
-    config-file: ./tacotruck.config.json
-    run-name: 'CI Run #${{ github.run_number }}'
-```
 
 ## Supported Test Result Formats
 
@@ -197,10 +134,8 @@ The action automatically detects the format based on file extension and content.
     results-path: ./test-results # Directory with multiple result files
     credentials: ${{ secrets.TESTRAIL_CREDENTIALS }}
     base-url: 'https://yourcompany.testrail.io'
-    config: |
-      {
-        "run_name": "Full Test Suite - ${{ github.sha }}"
-      }
+    run-name: 'Full Test Suite - ${{ github.sha }}'
+    source: GitHub Actions
 ```
 
 ### Conditional Submission
@@ -217,10 +152,8 @@ The action automatically detects the format based on file extension and content.
     credentials: ${{ secrets.TESTRAIL_CREDENTIALS }}
     base-url: 'https://yourcompany.testrail.io'
     fail-on-error: false # Don't fail the workflow if submission fails
-    config: |
-      {
-        "run_name": "${{ github.workflow }} - ${{ github.ref_name }} #${{ github.run_number }}"
-      }
+    run-name: '${{ github.workflow }} - ${{ github.ref_name }} #${{ github.run_number }}'
+    source: GitHub Actions
 ```
 
 ### Using Outputs
@@ -236,10 +169,7 @@ The action automatically detects the format based on file extension and content.
     results-path: ./test-results.json
     credentials: ${{ secrets.TESTFIESTA_API_KEY }}
     base-url: 'https://api.testfiesta.com'
-    config: |
-      {
-        "environment": "production"
-      }
+    source: GitHub Actions
 
 - name: Comment PR with Results
   if: github.event_name == 'pull_request'
@@ -274,7 +204,7 @@ The action automatically detects the format based on file extension and content.
 **No test results found:**
 
 - Check the `results-path` points to the correct file/directory
-- Verify test results are in a supported format (JUnit XML, JSON, TAP)
+- Verify test results are in a supported format (JUnit XML)
 
 **Submission failed:**
 
