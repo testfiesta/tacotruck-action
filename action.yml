@@ -23,6 +23,9 @@ inputs:
     required: true
   run-name:
     description: Name of the run
+    required: true
+  source:
+    description: Source of the run
     required: false
   fail-on-error:
     description: Fail the workflow if submission fails

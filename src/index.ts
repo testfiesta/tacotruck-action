@@ -85,6 +85,7 @@ async function submitToTestRail(
     description: `Automated test run from ${metadata.workflow} (${metadata.commit})`,
     results: testResults,
     include_all: true,
+    source: config.source,
   }
 
   const sanitizedPayload = { ...runPayload, credentials: '***' }
@@ -97,7 +98,11 @@ async function submitToTestRail(
     apiKey: config.credentials,
   })
 
-  await trClient.submitTestResults(testResults, {}, config.runName)
+  const options: Record<string, string> = {}
+  if (config.source) {
+    options.source = config.source
+  }
+  await trClient.submitTestResults(testResults, options, config.runName)
 
   return {
     resultsUrl: `${config.baseUrl}/index.php?/runs/view/${runId}`,
@@ -116,6 +121,7 @@ async function submitToTestfiesta(
     baseUrl: config.baseUrl,
     project: config.project,
     handle: config.handle,
+    source: config.source,
     metadata,
   }
 
@@ -128,7 +134,12 @@ async function submitToTestfiesta(
     organizationHandle: config.handle,
   })
 
-  await tfClient.submitTestResults(config.project, resultsPath, { runName: config.runName })
+  const options: { runName: string, source?: string } = { runName: config.runName }
+  if (config.source) {
+    options.source = config.source
+  }
+
+  await tfClient.submitTestResults(config.project, resultsPath, options)
 
   return {
     resultsUrl: `${config.baseUrl}/${config.handle}/${config.project}/runs`,
