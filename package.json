@@ -1,7 +1,7 @@
 {
   "name": "@testfiesta/tacotruck-action",
   "type": "module",
-  "version": "1.0.0-beta.30",
+  "version": "1.0.0-beta.2",
   "description": "GitHub Action for tacotruck",
   "author": "Testfiesta",
   "license": "MIT",
