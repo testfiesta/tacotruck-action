@@ -94,7 +94,7 @@ async function submitToTestRail(
   const runId = 1
 
   const trClient = new TestRailClient({
-    baseUrl: config.baseUrl,
+    baseUrl: config.baseUrl || '',
     apiKey: config.credentials,
   })
 

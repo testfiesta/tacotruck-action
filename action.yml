@@ -20,7 +20,7 @@ inputs:
     required: true
   base-url:
     description: Base URL for the API
-    required: true
+    required: false
   run-name:
     description: Name of the run
     required: true

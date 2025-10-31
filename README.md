@@ -8,17 +8,47 @@ Submit test results from any language/framework to test management services like
 - name: Submit Test Results
   uses: testfiesta/tacotruck-action@v1
   with:
-    provider: testrail
-    handle: <your-username>
-    project: <your-project-id>
+    provider: testfiesta
+    handle: <your-org-handle>
+    project: <your-project-key>
     results-path: ./test-results.xml
-    credentials: ${{ secrets.TESTRAIL_CREDENTIALS }}
-    base-url: 'https://<your-username>.testrail.io'
+    credentials: ${{ secrets.TESTFIESTA_API_KEY }}
     run-name: 'CI Run #${{ github.run_number }}'
     source: GitHub Actions
 ```
 
 ## Supported Providers
+
+### Testfiesta
+
+Testfiesta uses Bearer token authentication.
+
+#### Setup
+
+1. **Get your API token:**
+   - Go to Testfiesta dashboard → Settings → API Tokens
+   - Generate a new token
+
+2. **Add to GitHub Secrets:**
+   ```
+   TESTFIESTA_API_KEY = "your-api-key"
+   ```
+
+#### Usage
+
+```yaml
+- name: Submit to Testfiesta
+  uses: testfiesta/tacotruck-action@v1
+  with:
+    provider: testfiesta
+    handle: <your-org-handle>
+    project: <your-project-key>
+    results-path: ./test-results
+    credentials: ${{ secrets.TESTFIESTA_API_KEY }}
+    base-url: 'https://api.testfiesta.com' # Optional. Defaults to https://api.testfiesta.com
+    run-name: 'CI Run #${{ github.run_number }}'
+    source: GitHub Actions
+```
 
 ### TestRail
 
@@ -62,50 +92,19 @@ TestRail uses Basic Authentication with username and password.
     source: GitHub Actions
 ```
 
-### Testfiesta
-
-Testfiesta uses Bearer token authentication.
-
-#### Setup
-
-1. **Get your API token:**
-   - Go to Testfiesta dashboard → Settings → API Tokens
-   - Generate a new token
-
-2. **Add to GitHub Secrets:**
-   ```
-   TESTFIESTA_API_KEY = "your-api-key"
-   ```
-
-#### Usage
-
-```yaml
-- name: Submit to Testfiesta
-  uses: testfiesta/tacotruck-action@v1
-  with:
-    provider: testfiesta
-    handle: <your-org-handle>
-    project: <your-project-key>
-    results-path: ./test-results
-    credentials: ${{ secrets.TESTFIESTA_API_KEY }}
-    base-url: 'https://api.testfiesta.com'
-    run-name: 'CI Run #${{ github.run_number }}'
-    source: GitHub Actions
-```
-
 ## Input Reference
 
-| Input           | Required | Description                                                                    |
-| --------------- | -------- | ------------------------------------------------------------------------------ |
-| `provider`      | ✅       | Provider name (`testrail`, `testfiesta`)                                       |
-| `handle`        | ✅       | Handle of the provider (e.g. username for testrail, org handle for testfiesta) |
-| `project`       | ✅       | Project id or key of the provider                                              |
-| `results-path`  | ✅       | Path to test results file or directory                                         |
-| `credentials`   | ✅       | Authentication credentials (format varies by provider)                         |
-| `base-url`      | ✅       | Base URL for the provider's API                                                |
-| `run-name`      | ❌       | Name of the test run                                                           |
-| `source`        | ❌       | Source of the test run (e.g. 'GitHub Actions', 'Jenkins')                      |
-| `fail-on-error` | ❌       | Fail workflow if submission fails (default: `true`)                            |
+| Input           | Required | Description                                                                                                           |
+| --------------- | -------- | --------------------------------------------------------------------------------------------------------------------- |
+| `provider`      | ✅       | Provider name (`testrail`, `testfiesta`)                                                                              |
+| `handle`        | ✅       | Handle of the provider (e.g. username for testrail, org handle for testfiesta)                                        |
+| `project`       | ✅       | Project id or key of the provider                                                                                     |
+| `results-path`  | ✅       | Path to test results file or directory                                                                                |
+| `credentials`   | ✅       | Authentication credentials (format varies by provider)                                                                |
+| `base-url`      | ❌       | Base URL for the provider's API. Only required for TestRail. Defaults to `https://api.testfiesta.com` for Testfiesta. |
+| `run-name`      | ❌       | Name of the test run                                                                                                  |
+| `source`        | ❌       | Source of the test run (e.g. 'GitHub Actions', 'Jenkins')                                                             |
+| `fail-on-error` | ❌       | Fail workflow if submission fails (default: `true`)                                                                   |
 
 ## Output Reference
 
@@ -168,7 +167,7 @@ The action automatically detects the format based on file extension and content.
     project: <your-project-key>
     results-path: ./test-results.json
     credentials: ${{ secrets.TESTFIESTA_API_KEY }}
-    base-url: 'https://api.testfiesta.com'
+    base-url: 'https://api.testfiesta.com' # Optional. Defaults to https://api.testfiesta.com
     source: GitHub Actions
 
 - name: Comment PR with Results

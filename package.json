@@ -1,7 +1,7 @@
 {
   "name": "@testfiesta/tacotruck-action",
   "type": "module",
-  "version": "1.0.0-beta.2",
+  "version": "1.0.0-beta.30",
   "description": "GitHub Action for tacotruck",
   "author": "Testfiesta",
   "license": "MIT",
@@ -24,7 +24,7 @@
   "dependencies": {
     "@actions/core": "^1.11.1",
     "@actions/github": "^6.0.1",
-    "@testfiesta/tacotruck": "^1.0.0-beta.25",
+    "@testfiesta/tacotruck": "^1.0.0-beta.30",
     "zod": "^4.0.17"
   },
   "devDependencies": {
